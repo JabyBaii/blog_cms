@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #registerForm {
+            display: flex;
+            flex-direction: column;
+        }
+        #registerForm input,
+        #registerForm textarea,
+        #registerForm button {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        #registerForm button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #registerForm button:hover {
+            background-color: #40a9ff;
+        }
+        #userList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #userList li {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>用户注册</h1>
+        <form id="registerForm">
+            <input type="text" id="username" placeholder="用户名" required>
+            <input type="email" id="email" placeholder="邮箱" required>
+            <input type="password" id="password" placeholder="密码" required>
+            <textarea id="bio" placeholder="个人简介"></textarea>
+            <input type="date" id="birth_date" placeholder="出生日期">
+            <button type="submit">注册</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h1>用户列表</h1>
+        <ul id="userList"></ul>
+    </div>
+
+    <script>
+        // 获取CSRF令牌
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // 注册用户
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetch('/api/users/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken  // 添加CSRF令牌
+                },
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    bio: document.getElementById('bio').value,
+                    birth_date: document.getElementById('birth_date').value,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(JSON.stringify(err));
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('用户注册成功');
+                fetchUsers();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('注册失败: ' + error.message);
+            });
+        });
+
+        // 获取用户列表
+        function fetchUsers() {
+            fetch('/api/users/')
+            .then(response => response.json())
+            .then(data => {
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '';
+                data.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = `${user.username} (${user.email}) - ${user.bio}`;
+                    userList.appendChild(li);
+                });
+            });
+        }
+
+        // 页面加载时获取用户列表
+        fetchUsers();
+    </script>
+</body>
+</html>
